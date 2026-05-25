@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                 String              @id @db.Uuid
+  full_name          String
+  email              String              @unique
+  avatar_url         String?
+  role               String              @default("employee")
+  password           String?
+  created_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  remote_work_entries RemoteWorkEntry[]
+
+  @@map("profiles")
+}
+
+model RemoteWorkEntry {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  work_date  DateTime @db.Date
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  profile    Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, work_date])
+  @@map("remote_work_entries")
+}
