@@ -2,6 +2,7 @@ import { DashboardClient } from '@/components/presence/dashboard-client'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'Dashboard - Office Presence Tracker',

@@ -5,15 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  CalendarDays, 
-  List, 
-  Calendar as CalendarIcon, 
-  Home, 
-  Users, 
-  Trash2, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  List,
+  Calendar as CalendarIcon,
+  Home,
+  Users,
+  Trash2,
   Plus,
   Search,
   Loader2,
@@ -25,15 +25,21 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { deleteProfile, inviteMember } from '@/lib/actions/presence-actions'
 import { toast } from 'sonner'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface AdminDashboardClientProps {
   remoteEntries: {
@@ -44,9 +50,9 @@ interface AdminDashboardClientProps {
       avatar_url: string | null
     } | null
   }[]
-  teamMembers: { 
-    id: string, 
-    full_name: string, 
+  teamMembers: {
+    id: string,
+    full_name: string,
     avatar_url: string | null,
     email: string,
     role: string,
@@ -66,7 +72,7 @@ function getFirstDayOfMonth(year: number, month: number) {
 
 function getWeekDays(date: Date) {
   const curr = new Date(date);
-  const first = curr.getDate() - curr.getDay(); 
+  const first = curr.getDate() - curr.getDay();
   const days = [];
   for (let i = 0; i < 7; i++) {
     days.push(new Date(curr.setDate(first + i)));
@@ -81,7 +87,29 @@ function formatDateStr(date: Date) {
   return `${y}-${m}-${d}`
 }
 
-function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardClientProps) {
+export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardClientProps) {
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+  const getWeekDays = (date: Date) => {
+    const curr = new Date(date);
+    const first = curr.getDate() - curr.getDay();
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(new Date(curr.setDate(first + i)));
+    }
+    return days;
+  };
+
+  const formatDateStr = (date: Date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  };
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') || 'schedule'
@@ -89,7 +117,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('month')
   const [searchQuery, setSearchQuery] = useState('')
-  
+
   // Use tabParam directly as the source of truth for the active section
   const adminTab = tabParam
 
@@ -100,7 +128,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
   const [invitePassword, setInvitePassword] = useState('')
   const [inviteRole, setInviteRole] = useState('employee')
   const [isInviting, setIsInviting] = useState(false)
-  
+
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
 
   const handleTabChange = (newTab: string) => {
@@ -177,7 +205,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
     const weekDays = getWeekDays(currentDate);
     const start = weekDays[0];
     const end = weekDays[6];
-    dateLabel = `${monthNames[start.getMonth()].substring(0,3)} ${start.getDate()} - ${monthNames[end.getMonth()].substring(0,3)} ${end.getDate()}, ${end.getFullYear()}`;
+    dateLabel = `${monthNames[start.getMonth()].substring(0, 3)} ${start.getDate()} - ${monthNames[end.getMonth()].substring(0, 3)} ${end.getDate()}, ${end.getFullYear()}`;
   } else if (view === 'day') {
     dateLabel = `${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
   }
@@ -186,7 +214,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
   const month = currentDate.getMonth();
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
-  
+
   const monthCells = [];
   for (let i = 0; i < firstDay; i++) monthCells.push(null);
   for (let i = 1; i <= daysInMonth; i++) monthCells.push(new Date(year, month, i));
@@ -201,9 +229,13 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
     }
   }
 
-  const filteredTeam = teamMembers.filter(m => 
+  const filteredTeam = teamMembers.filter(m =>
     m.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const dateStrForDay = formatDateStr(currentDate);
+  const remoteUsersForDay = getRemoteUsersForDate(dateStrForDay);
+  const isWeekendForDay = currentDate.getDay() === 0 || currentDate.getDay() === 6;
 
   return (
     <div className="space-y-6">
@@ -225,7 +257,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
           onClick={() => handleTabChange('team')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${adminTab === 'team' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
         >
-          <span className="flex items-center gap-2"><Users size={16}/> Team Roster</span>
+          <span className="flex items-center gap-2"><Users size={16} /> Team Roster</span>
         </button>
       </div>
 
@@ -247,48 +279,114 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
               </div>
 
               <TabsList>
-                <TabsTrigger value="day" className="gap-2"><CalendarDays size={16}/> <span className="hidden sm:inline">Day</span></TabsTrigger>
-                <TabsTrigger value="week" className="gap-2"><CalendarDays size={16}/> <span className="hidden sm:inline">Week</span></TabsTrigger>
-                <TabsTrigger value="month" className="gap-2"><CalendarIcon size={16}/> <span className="hidden sm:inline">Month</span></TabsTrigger>
-                <TabsTrigger value="list" className="gap-2"><List size={16}/> <span className="hidden sm:inline">List</span></TabsTrigger>
+                <TabsTrigger value="day" className="gap-2"><CalendarDays size={16} /> <span className="hidden sm:inline">Day</span></TabsTrigger>
+                <TabsTrigger value="week" className="gap-2"><CalendarDays size={16} /> <span className="hidden sm:inline">Week</span></TabsTrigger>
+                <TabsTrigger value="month" className="gap-2"><CalendarIcon size={16} /> <span className="hidden sm:inline">Month</span></TabsTrigger>
+                <TabsTrigger value="list" className="gap-2"><List size={16} /> <span className="hidden sm:inline">List</span></TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="month" className="mt-0">
               <Card className="overflow-hidden border-slate-200">
-                <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 border-l border-slate-200">
-                  {monthCells.map((date, idx) => {
-                    if (!date) return <div key={`empty-${idx}`} className="h-32 border-r border-b border-slate-100 bg-slate-50/50" />;
-                    
-                    const dateStr = formatDateStr(date);
-                    const isWeekend = idx % 7 === 0 || idx % 7 === 6;
-                    const remoteUsers = getRemoteUsersForDate(dateStr)
+                <TooltipProvider>
 
-                    return (
-                      <div key={date.toISOString()} className={`h-32 p-2 border-r border-b border-slate-100 flex flex-col ${isWeekend ? 'bg-slate-50/50' : 'hover:bg-slate-50 transition-colors'}`}>
-                        <span className="text-sm font-medium text-slate-700 px-1 mb-2">{date.getDate()}</span>
-                        {!isWeekend && remoteUsers.length > 0 && (
-                          <div className="mt-auto">
-                            <div className="flex items-center justify-between text-xs px-2 py-1.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100">
-                              <span className="flex items-center gap-1.5 font-medium"><Home size={12} /> Remote</span>
-                              <span className="font-bold">{remoteUsers.length}</span>
-                            </div>
-                          </div>
-                        )}
+                  {/* Week Days Header */}
+                  <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <div
+                        key={day}
+                        className="py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider"
+                      >
+                        {day}
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 border-l border-slate-200">
+                    {monthCells.map((date, idx) => {
+
+                      // Empty Cell
+                      if (!date) {
+                        return (
+                          <div
+                            key={`empty-${idx}`}
+                            className="h-32 border-r border-b border-slate-100 bg-slate-50/50"
+                          />
+                        );
+                      }
+
+                      const dateStr = formatDateStr(date);
+                      const isWeekend = idx % 7 === 0 || idx % 7 === 6;
+                      const remoteUsers = getRemoteUsersForDate(dateStr);
+
+                      return (
+                        <div
+                          key={date.toISOString()}
+                          className={`h-32 p-2 border-r border-b border-slate-100 flex flex-col
+              ${isWeekend
+                              ? "bg-slate-50/50"
+                              : "hover:bg-slate-50 transition-colors"
+                            }`}
+                        >
+                          {/* Date */}
+                          <span className="text-sm font-medium text-slate-700 px-1 mb-2">
+                            {date.getDate()}
+                          </span>
+
+                          {/* Remote Users */}
+                          {!isWeekend && remoteUsers.length > 0 && (
+                            <div className="mt-auto">
+
+                              <Tooltip>
+                                <TooltipTrigger>
+
+                                  <div className="flex items-center justify-between text-xs px-2 py-1.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 cursor-pointer hover:bg-emerald-100 transition-colors">
+
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                      <Home size={12} />
+                                      Remote
+                                    </span>
+
+                                    <span className="font-bold">
+                                      {remoteUsers.length}
+                                    </span>
+
+                                  </div>
+
+                                </TooltipTrigger>
+
+                                <TooltipContent side="top">
+                                  <div className="space-y-1 min-w-[150px]">
+
+                                    <p className="font-semibold text-xs">
+                                      Remote Employees
+                                    </p>
+
+                                    {remoteUsers.map((user: any) => (
+                                      <div
+                                        key={user.id}
+                                        className="text-xs"
+                                      >
+                                        {user.full_name}
+                                      </div>
+                                    ))}
+
+                                  </div>
+                                </TooltipContent>
+
+                              </Tooltip>
+
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                </TooltipProvider>
               </Card>
             </TabsContent>
-
             <TabsContent value="week" className="mt-0">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 {weekCells.map(date => {
@@ -308,7 +406,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                           <span>Remote</span>
                           <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{remoteUsers.length}</Badge>
                         </div>
-                        
+
                         <div className="overflow-y-auto space-y-2 flex-1">
                           {remoteUsers.length > 0 ? (
                             remoteUsers.map(u => (
@@ -335,55 +433,47 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
             </TabsContent>
 
             <TabsContent value="day" className="mt-0">
-               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                {(() => {
-                  const dateStr = formatDateStr(currentDate);
-                  const remoteUsers = getRemoteUsersForDate(dateStr);
-                  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <Card className="p-4 flex flex-col min-h-[220px]">
+                  <div className="text-center pb-4 border-b border-slate-100 mb-4">
+                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
+                    <p className="text-xs text-slate-400 mt-1">{monthNames[currentDate.getMonth()]}</p>
+                  </div>
 
-                  return (
-                    <Card className="p-4 flex flex-col min-h-[220px]">
-                      <div className="text-center pb-4 border-b border-slate-100 mb-4">
-                        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
-                        <p className="text-xs text-slate-400 mt-1">{monthNames[currentDate.getMonth()]}</p>
+                  {!isWeekendForDay ? (
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-3 text-sm font-medium text-slate-700">
+                        <span>Remote</span>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{remoteUsersForDay.length}</Badge>
                       </div>
 
-                      {!isWeekend ? (
-                        <div className="flex-1 flex flex-col">
-                          <div className="flex items-center justify-between mb-3 text-sm font-medium text-slate-700">
-                            <span>Remote</span>
-                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{remoteUsers.length}</Badge>
+                      <div className="overflow-y-auto space-y-2 flex-1">
+                        {remoteUsersForDay.length > 0 ? (
+                          remoteUsersForDay.map(u => (
+                            <div key={u.id} className="flex items-center text-sm bg-slate-50 p-2 rounded-md border border-slate-100">
+                              <Avatar className="h-5 w-5 mr-2">
+                                <AvatarFallback className="text-[9px] bg-slate-200">
+                                  {u.full_name.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-slate-700 truncate">{u.full_name.split(' ')[0]}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                            All in Office
                           </div>
-                          
-                          <div className="overflow-y-auto space-y-2 flex-1">
-                            {remoteUsers.length > 0 ? (
-                              remoteUsers.map(u => (
-                                <div key={u.id} className="flex items-center text-sm bg-slate-50 p-2 rounded-md border border-slate-100">
-                                  <Avatar className="h-5 w-5 mr-2">
-                                    <AvatarFallback className="text-[9px] bg-slate-200">
-                                      {u.full_name.substring(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="font-medium text-slate-700 truncate">{u.full_name.split(' ')[0]}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                                All in Office
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-auto flex justify-center items-center h-full">
-                           <p className="text-sm text-slate-400 italic">Weekend</p>
-                        </div>
-                      )}
-                    </Card>
-                  )
-                })()}
-               </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-auto flex justify-center items-center h-full">
+                      <p className="text-sm text-slate-400 italic">Weekend</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="list" className="mt-0">
@@ -400,7 +490,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                     {listCells.map(date => {
                       const dateStr = formatDateStr(date);
                       const remoteUsers = getRemoteUsersForDate(dateStr);
-                      
+
                       return (
                         <tr key={dateStr} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">
@@ -461,7 +551,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                   />
                 </div>
                 <Button className="gap-2" onClick={() => setIsInviteDialogOpen(true)}>
-                  <Plus size={16} /> Invite
+                  <Plus size={16} /> Add Member
                 </Button>
               </div>
             </div>
@@ -474,9 +564,9 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                 <form onSubmit={handleInvite} className="space-y-4 py-4">
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium text-slate-700">Full Name</label>
-                    <Input 
-                      id="name" 
-                      placeholder="John Doe" 
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
                       value={inviteName}
                       onChange={(e) => setInviteName(e.target.value)}
                       required
@@ -484,10 +574,10 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="john@example.com" 
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="john@example.com"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       required
@@ -495,46 +585,19 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="password" className="text-sm font-medium text-slate-700">Initial Password</label>
-                    <Input 
-                      id="password" 
-                      type="text" 
-                      placeholder="Password123!" 
+                    <Input
+                      id="password"
+                      type="text"
+                      placeholder="Password123!"
                       value={invitePassword}
                       onChange={(e) => setInvitePassword(e.target.value)}
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Role</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="role" 
-                          value="employee" 
-                          checked={inviteRole === 'employee'} 
-                          onChange={(e) => setInviteRole(e.target.value)}
-                          className="w-4 h-4 text-slate-900 border-slate-300 focus:ring-slate-900"
-                        />
-                        <span className="text-sm text-slate-600">Employee</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="role" 
-                          value="admin" 
-                          checked={inviteRole === 'admin'} 
-                          onChange={(e) => setInviteRole(e.target.value)}
-                          className="w-4 h-4 text-slate-900 border-slate-300 focus:ring-slate-900"
-                        />
-                        <span className="text-sm text-slate-600">Admin</span>
-                      </label>
-                    </div>
-                  </div>
                   <DialogFooter className="mt-6">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => setIsInviteDialogOpen(false)}
                       disabled={isInviting}
                     >
@@ -592,7 +655,7 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                           <code className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-mono">
                             {showPasswords[member.id] ? member.password : '••••••••'}
                           </code>
-                          <button 
+                          <button
                             onClick={() => togglePasswordVisibility(member.id)}
                             className="text-slate-400 hover:text-slate-600 transition-colors"
                           >
@@ -601,8 +664,8 @@ function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashboardCli
                         </div>
                       </td>
                       <td className="px-6 py-3 flex justify-end">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           onClick={() => handleDeleteProfile(member.id)}
