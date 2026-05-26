@@ -31,11 +31,11 @@ export async function loginEmployee(formData: FormData) {
     })
     
     if (profile?.role === 'admin') {
-      redirect('/admin/presence')
+      return { success: true, redirectTo: '/admin/presence' }
     }
   }
 
-  redirect('/dashboard/presence')
+  return { success: true, redirectTo: '/dashboard/presence' }
 }
 
 export async function loginAdmin(formData: FormData) {
@@ -71,7 +71,7 @@ export async function loginAdmin(formData: FormData) {
     }
   }
 
-  redirect('/admin/presence')
+  return { success: true, redirectTo: '/admin/presence' }
 }
 
 export async function logout() {

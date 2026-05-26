@@ -15,18 +15,30 @@ interface LoginFormProps {
 
 export function LoginForm({ isAdmin = false }: LoginFormProps) {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   async function onSubmit(formData: FormData) {
     setLoading(true)
-    const result = isAdmin 
-      ? await loginAdmin(formData)
-      : await loginEmployee(formData)
+    try {
+      const result = isAdmin 
+        ? await loginAdmin(formData)
+        : await loginEmployee(formData)
 
-    if (result?.error) {
-      toast.error(result.error)
+      if (result?.error) {
+        toast.error(result.error)
+        setLoading(false)
+      } else if (result?.success && result?.redirectTo) {
+        toast.success('Signed in successfully! Redirecting...')
+        // Use direct browser navigation to completely bypass Next.js client-side router caching,
+        // ensuring all middleware checks run against fresh cookies and eliminating the manual refresh requirement.
+        window.location.href = result.redirectTo
+      } else {
+        setLoading(false)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'An unexpected error occurred during sign in.')
       setLoading(false)
     }
-    // Note: redirect is handled in the server action if successful
   }
 
   return (

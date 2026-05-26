@@ -105,7 +105,7 @@ export async function updateUserPassword(password: string) {
   }
 }
 
-export async function toggleRemoteStatus(date: Date, userId?: string) {
+export async function toggleRemoteStatus(date: Date, isCurrentlyRemote: boolean, userId?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -115,25 +115,20 @@ export async function toggleRemoteStatus(date: Date, userId?: string) {
 
   const targetUserId = userId || user.id
   const normalizedDate = startOfDay(date)
-  
-  // Check if entry exists
-  const existingEntry = await prisma.remoteWorkEntry.findUnique({
-    where: {
-      user_id_work_date: {
-        user_id: targetUserId,
-        work_date: normalizedDate,
-      }
-    }
-  })
 
   try {
-    if (existingEntry) {
-      // Delete if exists (revert to office)
+    if (isCurrentlyRemote) {
+      // Revert to office: delete entry using compound unique key (avoids prior findUnique query)
       await prisma.remoteWorkEntry.delete({
-        where: { id: existingEntry.id }
+        where: {
+          user_id_work_date: {
+            user_id: targetUserId,
+            work_date: normalizedDate,
+          }
+        }
       })
     } else {
-      // Insert if doesn't exist (mark remote)
+      // Mark remote: create entry (avoids prior findUnique query)
       await prisma.remoteWorkEntry.create({
         data: {
           user_id: targetUserId,
@@ -146,8 +141,13 @@ export async function toggleRemoteStatus(date: Date, userId?: string) {
     return { error: message }
   }
 
-  revalidatePath('/dashboard/presence')
-  revalidatePath('/admin/presence')
+  // Targeted revalidation: Only revalidate the path that is actually affected to avoid heavy
+  // and slow server-side re-rendering of pages for unchanged dashboards.
+  if (userId) {
+    revalidatePath('/admin/presence')
+  } else {
+    revalidatePath('/dashboard/presence')
+  }
   
   return { success: true }
 }

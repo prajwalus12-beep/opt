@@ -17,17 +17,20 @@ export function TogglePresence({ date, isRemote, userId }: TogglePresenceProps) 
   const [optimisticRemote, setOptimisticRemote] = useState(isRemote)
 
   const handleToggle = () => {
+    const originalState = optimisticRemote
+    const newState = !originalState
+
     // Optimistic update
-    setOptimisticRemote(!optimisticRemote)
+    setOptimisticRemote(newState)
 
     startTransition(async () => {
-      const result = await toggleRemoteStatus(date, userId)
+      const result = await toggleRemoteStatus(date, originalState, userId)
       if (result.error) {
         // Revert on error
-        setOptimisticRemote(optimisticRemote)
+        setOptimisticRemote(originalState)
         toast.error(result.error)
       } else {
-        toast.success(optimisticRemote ? 'Marked as Office' : 'Marked as Remote')
+        toast.success(newState ? 'Marked as Remote' : 'Marked as Office')
       }
     })
   }
