@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { Home, CalendarDays, Users, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -21,14 +21,24 @@ function NavLinks({ navItems, pathname, onNavItemClick }: {
   pathname: string,
   onNavItemClick: () => void 
 }) {
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get('tab')
+
   return (
     <div className="flex flex-col gap-2">
       {navItems.map((item) => {
-        const isActive = pathname === item.href
+        // Split href into path and query to correctly match both parts
+        const [itemPath, itemQuery] = item.href.split('?')
+        const itemTab = itemQuery ? new URLSearchParams(itemQuery).get('tab') : null
+
+        // Active if path matches AND tab param matches (or both have no tab)
+        const isActive = pathname === itemPath && currentTab === itemTab
+
         return (
           <Link
             key={item.href}
             href={item.href}
+            scroll={false}
             onClick={onNavItemClick}
             className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
               isActive 

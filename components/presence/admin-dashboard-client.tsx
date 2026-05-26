@@ -112,14 +112,12 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
 
   const router = useRouter()
   const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab') || 'schedule'
+  // Read from URL only for initial state (supports direct links like /admin/presence?tab=team)
+  const [adminTab, setAdminTab] = useState(searchParams.get('tab') || 'schedule')
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('month')
   const [searchQuery, setSearchQuery] = useState('')
-
-  // Use tabParam directly as the source of truth for the active section
-  const adminTab = tabParam
 
   // Invite dialog state
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
@@ -131,10 +129,9 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
 
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
 
+  // Instant tab switching — pure local state, no router.push/server re-render
   const handleTabChange = (newTab: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('tab', newTab)
-    router.push(`?${params.toString()}`, { scroll: false })
+    setAdminTab(newTab)
   }
 
   const navigateDate = (direction: number) => {

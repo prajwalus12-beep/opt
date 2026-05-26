@@ -1,0 +1,5 @@
+- [x] Modify `auth-actions.ts` to return JSON results instead of server-side `redirect(...)`
+- [x] Modify `login-form.tsx` to handle the JSON result, maintain loader status, and perform direct browser navigation
+- [x] Modify `presence-actions.ts` to accept `isCurrentlyRemote`, optimize DB access, and selectively trigger path revalidation
+- [x] Modify `toggle-presence.tsx` to pass the correct state arguments to `toggleRemoteStatus` and correct toast messaging
+- [x] Build and verify everything compiles successfully
