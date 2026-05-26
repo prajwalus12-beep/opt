@@ -315,66 +315,87 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
 
                       const dateStr = formatDateStr(date);
                       const isWeekend = idx % 7 === 0 || idx % 7 === 6;
+                      const isToday = dateStr === formatDateStr(new Date());
                       const remoteUsers = getRemoteUsersForDate(dateStr);
 
                       return (
                         <div
                           key={date.toISOString()}
-                          className={`h-32 p-2 border-r border-b border-slate-100 flex flex-col
-              ${isWeekend
+                          className={`h-32 p-2 border-r border-b border-slate-100 flex flex-col justify-between transition-colors
+                            ${isWeekend
                               ? "bg-slate-50/50"
-                              : "hover:bg-slate-50 transition-colors"
+                              : "bg-white hover:bg-slate-50/50"
                             }`}
                         >
-                          {/* Date */}
-                          <span className="text-sm font-medium text-slate-700 px-1 mb-2">
-                            {date.getDate()}
-                          </span>
+                          {/* Date and Today Badge */}
+                          <div className="flex justify-between items-center w-full">
+                            <span className={`text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
+                              isToday 
+                                ? 'bg-indigo-600 text-white font-bold' 
+                                : 'text-slate-800'
+                            }`}>
+                              {date.getDate()}
+                            </span>
+                            {isToday && (
+                              <span className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                TODAY
+                              </span>
+                            )}
+                          </div>
 
-                          {/* Remote Users */}
-                          {!isWeekend && remoteUsers.length > 0 && (
-                            <div className="mt-auto">
+                          {/* Remote Users Info / Office-Only */}
+                          {!isWeekend ? (
+                            <div className="flex-1 flex flex-col justify-center items-center gap-1.5">
+                              {remoteUsers.length > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={<div className="w-full flex flex-col items-center gap-1 cursor-pointer" />}
+                                  >
+                                    {/* Remote Pill */}
+                                    <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-semibold hover:bg-emerald-100 transition-colors shadow-sm">
+                                      <span>🏡</span>
+                                      <span>Remote {remoteUsers.length}</span>
+                                    </div>
+                                    
+                                    {/* Avatars */}
+                                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                                      {remoteUsers.slice(0, 3).map((u) => (
+                                        <Avatar key={u.id} className="h-5 w-5 border border-white">
+                                          {u.avatar_url && <AvatarImage src={u.avatar_url} />}
+                                          <AvatarFallback className="text-[8px] bg-indigo-50 text-indigo-700 font-bold">
+                                            {u.full_name.substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      ))}
+                                      {remoteUsers.length > 3 && (
+                                        <span className="text-[10px] font-bold text-slate-500">
+                                          +{remoteUsers.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
 
-                              <Tooltip>
-                                <TooltipTrigger>
-
-                                  <div className="flex items-center justify-between text-xs px-2 py-1.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 cursor-pointer hover:bg-emerald-100 transition-colors">
-
-                                    <span className="flex items-center gap-1.5 font-medium">
-                                      <Home size={12} />
-                                      Remote
-                                    </span>
-
-                                    <span className="font-bold">
-                                      {remoteUsers.length}
-                                    </span>
-
-                                  </div>
-
-                                </TooltipTrigger>
-
-                                <TooltipContent side="top">
-                                  <div className="space-y-1 min-w-[150px]">
-
-                                    <p className="font-semibold text-xs">
-                                      Remote Employees
-                                    </p>
-
-                                    {remoteUsers.map((user: any) => (
-                                      <div
-                                        key={user.id}
-                                        className="text-xs"
-                                      >
-                                        {user.full_name}
-                                      </div>
-                                    ))}
-
-                                  </div>
-                                </TooltipContent>
-
-                              </Tooltip>
-
+                                  <TooltipContent side="top">
+                                    <div className="space-y-1 min-w-[150px]">
+                                      <p className="font-semibold text-xs border-b pb-1 mb-1">
+                                        Remote Employees ({remoteUsers.length})
+                                      </p>
+                                      {remoteUsers.map((user: any) => (
+                                        <div key={user.id} className="text-xs">
+                                          {user.full_name}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-slate-400 text-xs font-semibold py-3">
+                                  Office-Only
+                                </span>
+                              )}
                             </div>
+                          ) : (
+                            <div className="flex-1" />
                           )}
                         </div>
                       );
@@ -389,27 +410,35 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
                 {weekCells.map(date => {
                   const dateStr = formatDateStr(date);
                   const remoteUsers = getRemoteUsersForDate(dateStr);
+                  const hasRemote = remoteUsers.length > 0;
 
                   return (
-                    <Card key={date.toISOString()} className="p-4 flex flex-col min-h-[220px]">
-                      <div className="text-center pb-4 border-b border-slate-100 mb-4">
-                        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                    <Card 
+                      key={date.toISOString()} 
+                      className={`p-4 flex flex-col min-h-[240px] transition-all duration-200 border ${
+                        hasRemote 
+                          ? 'bg-emerald-50/20 border-emerald-200 shadow-[0_1px_3px_rgba(16,185,129,0.1)]' 
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="text-center pb-3 border-b border-slate-100 mb-3">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
                         <p className="text-2xl font-bold text-slate-900 mt-1">{date.getDate()}</p>
-                        <p className="text-xs text-slate-400 mt-1">{monthNames[date.getMonth()]}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{monthNames[date.getMonth()]}</p>
                       </div>
 
                       <div className="flex-1 flex flex-col">
-                        <div className="flex items-center justify-between mb-3 text-sm font-medium text-slate-700">
-                          <span>Remote</span>
-                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{remoteUsers.length}</Badge>
+                        <div className="flex items-center justify-between mb-3 text-sm font-semibold text-slate-700">
+                          <span className="flex items-center gap-1 text-xs uppercase tracking-wider text-slate-400">Remote Status</span>
+                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-bold">{remoteUsers.length}</Badge>
                         </div>
 
-                        <div className="overflow-y-auto space-y-2 flex-1">
+                        <div className="overflow-y-auto space-y-2 flex-1 max-h-[120px] pr-1">
                           {remoteUsers.length > 0 ? (
                             remoteUsers.map(u => (
-                              <div key={u.id} className="flex items-center text-sm bg-slate-50 p-2 rounded-md border border-slate-100">
+                              <div key={u.id} className="flex items-center text-sm bg-white p-2 rounded-md border border-slate-100 shadow-sm">
                                 <Avatar className="h-5 w-5 mr-2">
-                                  <AvatarFallback className="text-[9px] bg-slate-200">
+                                  <AvatarFallback className="text-[9px] bg-slate-200 font-semibold">
                                     {u.full_name.substring(0, 2).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
@@ -417,7 +446,7 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
                               </div>
                             ))
                           ) : (
-                            <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                            <div className="h-full flex items-center justify-center text-xs text-slate-400 italic py-4">
                               All in Office
                             </div>
                           )}
@@ -431,45 +460,56 @@ export function AdminDashboardContent({ remoteEntries, teamMembers }: AdminDashb
 
             <TabsContent value="day" className="mt-0">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <Card className="p-4 flex flex-col min-h-[220px]">
-                  <div className="text-center pb-4 border-b border-slate-100 mb-4">
-                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
-                    <p className="text-xs text-slate-400 mt-1">{monthNames[currentDate.getMonth()]}</p>
-                  </div>
-
-                  {!isWeekendForDay ? (
-                    <div className="flex-1 flex flex-col">
-                      <div className="flex items-center justify-between mb-3 text-sm font-medium text-slate-700">
-                        <span>Remote</span>
-                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{remoteUsersForDay.length}</Badge>
+                {(() => {
+                  const hasRemote = !isWeekendForDay && remoteUsersForDay.length > 0;
+                  return (
+                    <Card 
+                      className={`p-4 flex flex-col min-h-[240px] transition-all duration-200 border ${
+                        hasRemote 
+                          ? 'bg-emerald-50/20 border-emerald-200 shadow-[0_1px_3px_rgba(16,185,129,0.1)]' 
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="text-center pb-3 border-b border-slate-100 mb-3">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                        <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{monthNames[currentDate.getMonth()]}</p>
                       </div>
 
-                      <div className="overflow-y-auto space-y-2 flex-1">
-                        {remoteUsersForDay.length > 0 ? (
-                          remoteUsersForDay.map(u => (
-                            <div key={u.id} className="flex items-center text-sm bg-slate-50 p-2 rounded-md border border-slate-100">
-                              <Avatar className="h-5 w-5 mr-2">
-                                <AvatarFallback className="text-[9px] bg-slate-200">
-                                  {u.full_name.substring(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium text-slate-700 truncate">{u.full_name.split(' ')[0]}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                            All in Office
+                      {!isWeekendForDay ? (
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex items-center justify-between mb-3 text-sm font-semibold text-slate-700">
+                            <span className="flex items-center gap-1 text-xs uppercase tracking-wider text-slate-400">Remote Status</span>
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-bold">{remoteUsersForDay.length}</Badge>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-auto flex justify-center items-center h-full">
-                      <p className="text-sm text-slate-400 italic">Weekend</p>
-                    </div>
-                  )}
-                </Card>
+
+                          <div className="overflow-y-auto space-y-2 flex-1 max-h-[120px] pr-1">
+                            {remoteUsersForDay.length > 0 ? (
+                              remoteUsersForDay.map(u => (
+                                <div key={u.id} className="flex items-center text-sm bg-white p-2 rounded-md border border-slate-100 shadow-sm">
+                                  <Avatar className="h-5 w-5 mr-2">
+                                    <AvatarFallback className="text-[9px] bg-slate-200 font-semibold">
+                                      {u.full_name.substring(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-medium text-slate-700 truncate">{u.full_name.split(' ')[0]}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic py-4">
+                                All in Office
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex justify-center items-center">
+                          <p className="text-sm text-slate-400 italic">Weekend</p>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })()}
               </div>
             </TabsContent>
 

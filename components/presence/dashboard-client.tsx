@@ -232,23 +232,34 @@ export function DashboardClient({ initialRemoteDates, userId }: DashboardClientP
 
                   const isToday = formatDateStr(date) === formatDateStr(new Date());
                   const isWeekend = idx % 7 === 0 || idx % 7 === 6;
+                  const remote = isRemote(date);
+
+                  const dateNumEl = (
+                    <span className={`text-sm font-medium ${isToday ? 'bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-semibold' : 'text-slate-700 px-1'}`}>
+                      {date.getDate()}
+                    </span>
+                  );
 
                   return (
-                    <div key={date.toISOString()} className={`h-32 p-2 border-r border-b border-slate-100 flex flex-col transition-colors ${isWeekend ? 'bg-slate-50/50' : 'hover:bg-slate-50'} ${isToday ? 'bg-indigo-50/20' : ''}`}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className={`text-sm font-medium ${isToday ? 'bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-slate-700 px-1'}`}>
-                          {date.getDate()}
-                        </span>
-                      </div>
-
-                      {!isWeekend && (
-                        <div className="mt-auto">
-                          <TogglePresence
-                            date={date}
-                            isRemote={isRemote(date)}
-                            userId={userId}
-                          />
+                    <div 
+                      key={date.toISOString()} 
+                      className={`h-32 p-2 flex flex-col transition-all duration-200 ${
+                        remote 
+                          ? 'bg-emerald-50/20 border border-emerald-200 rounded-sm z-10 shadow-[0_1px_3px_rgba(16,185,129,0.1)]' 
+                          : `border-r border-b border-slate-100 ${isWeekend ? 'bg-slate-50/50' : 'hover:bg-slate-50'}`
+                      } ${isToday ? 'bg-indigo-50/10' : ''}`}
+                    >
+                      {isWeekend ? (
+                        <div className="flex justify-between items-center mb-2">
+                          {dateNumEl}
                         </div>
+                      ) : (
+                        <TogglePresence
+                          date={date}
+                          isRemote={remote}
+                          userId={userId}
+                          dateNumberElement={dateNumEl}
+                        />
                       )}
                     </div>
                   );
@@ -259,51 +270,69 @@ export function DashboardClient({ initialRemoteDates, userId }: DashboardClientP
 
           <TabsContent value="week" className="mt-0">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {weekCells.map(date => (
-                <Card key={date.toISOString()} className="p-4 flex flex-col min-h-[220px]">
-                  <div className="text-center pb-4 border-b border-slate-100 mb-4">
-                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{date.getDate()}</p>
-                    <p className="text-xs text-slate-400 mt-1">{monthNames[date.getMonth()]}</p>
-                  </div>
-                  <div className="mt-auto">
-                    <p className="text-sm text-center text-slate-500 mb-3">Location Status</p>
-                    <TogglePresence
-                      date={date}
-                      isRemote={isRemote(date)}
-                      userId={userId}
-                    />
-                  </div>
-                </Card>
-              ))}
+              {weekCells.map(date => {
+                const remote = isRemote(date);
+                return (
+                  <Card 
+                    key={date.toISOString()} 
+                    className={`p-4 flex flex-col min-h-[240px] transition-all duration-200 border ${
+                      remote 
+                        ? 'bg-emerald-50/20 border-emerald-200 shadow-[0_1px_3px_rgba(16,185,129,0.1)]' 
+                        : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <div className="text-center pb-3 border-b border-slate-100 mb-3">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                      <p className="text-2xl font-bold text-slate-900 mt-1">{date.getDate()}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{monthNames[date.getMonth()]}</p>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between">
+                      <TogglePresence
+                        date={date}
+                        isRemote={remote}
+                        userId={userId}
+                      />
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
           <TabsContent value="day" className="mt-0">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {/* Just showing one day in similar format to week */}
-              <Card className="p-4 flex flex-col min-h-[220px]">
-                <div className="text-center pb-4 border-b border-slate-100 mb-4">
-                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
-                  <p className="text-xs text-slate-400 mt-1">{monthNames[currentDate.getMonth()]}</p>
-                </div>
-                {currentDate.getDay() !== 0 && currentDate.getDay() !== 6 && (
-                  <div className="mt-auto">
-                    <p className="text-sm text-center text-slate-500 mb-3">Location Status</p>
-                    <TogglePresence
-                      date={currentDate}
-                      isRemote={isRemote(currentDate)}
-                      userId={userId}
-                    />
-                  </div>
-                )}
-                {(currentDate.getDay() === 0 || currentDate.getDay() === 6) && (
-                  <div className="mt-auto flex justify-center items-center h-full">
-                    <p className="text-sm text-slate-400 italic">Weekend</p>
-                  </div>
-                )}
-              </Card>
+              {(() => {
+                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                const remote = !isWeekend && isRemote(currentDate);
+                return (
+                  <Card 
+                    className={`p-4 flex flex-col min-h-[240px] transition-all duration-200 border ${
+                      remote 
+                        ? 'bg-emerald-50/20 border-emerald-200 shadow-[0_1px_3px_rgba(16,185,129,0.1)]' 
+                        : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <div className="text-center pb-3 border-b border-slate-100 mb-3">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                      <p className="text-2xl font-bold text-slate-900 mt-1">{currentDate.getDate()}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{monthNames[currentDate.getMonth()]}</p>
+                    </div>
+                    {!isWeekend ? (
+                      <div className="flex-1 flex flex-col justify-between">
+                        <TogglePresence
+                          date={currentDate}
+                          isRemote={remote}
+                          userId={userId}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex justify-center items-center">
+                        <p className="text-sm text-slate-400 italic">Weekend</p>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })()}
             </div>
           </TabsContent>
 
@@ -320,8 +349,6 @@ export function DashboardClient({ initialRemoteDates, userId }: DashboardClientP
                   {listCells.map(date => {
                     const remote = isRemote(date);
                     // only show remote entries as requested: "Show ONLY remote entries. DO NOT show office entries."
-                    // Wait, if we only show remote entries in list view, they can't toggle from office to remote here.
-                    // The prompt says: "Show ONLY remote entries. DO NOT show office entries. Features: inline toggle, remove remote status, empty state: 'No remote work logged'"
                     if (!remote) return null;
 
                     return (
@@ -335,6 +362,7 @@ export function DashboardClient({ initialRemoteDates, userId }: DashboardClientP
                               date={date}
                               isRemote={remote}
                               userId={userId}
+                              showPillAndBox={false}
                             />
                           </div>
                         </td>
