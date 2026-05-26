@@ -105,7 +105,7 @@ export async function updateUserPassword(password: string) {
   }
 }
 
-export async function toggleRemoteStatus(date: Date, isCurrentlyRemote: boolean, userId?: string) {
+export async function toggleRemoteStatus(date: Date | string, isCurrentlyRemote: boolean, userId?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -114,23 +114,37 @@ export async function toggleRemoteStatus(date: Date, isCurrentlyRemote: boolean,
   }
 
   const targetUserId = userId || user.id
-  const normalizedDate = startOfDay(date)
+  
+  // Safely parse date to avoid timezone shift issues
+  let normalizedDate: Date
+  if (typeof date === 'string') {
+    normalizedDate = new Date(date)
+  } else {
+    normalizedDate = startOfDay(date)
+  }
 
   try {
     if (isCurrentlyRemote) {
-      // Revert to office: delete entry using compound unique key (avoids prior findUnique query)
-      await prisma.remoteWorkEntry.delete({
+      // Revert to office: delete matching entry. Using deleteMany prevents throwing 
+      // "Record to delete does not exist" if already deleted or absent (e.g. from race conditions).
+      await prisma.remoteWorkEntry.deleteMany({
+        where: {
+          user_id: targetUserId,
+          work_date: normalizedDate,
+        }
+      })
+    } else {
+      // Mark remote: upsert entry. This prevents unique constraint violation errors 
+      // if the entry already exists (e.g. from double clicks).
+      await prisma.remoteWorkEntry.upsert({
         where: {
           user_id_work_date: {
             user_id: targetUserId,
             work_date: normalizedDate,
           }
-        }
-      })
-    } else {
-      // Mark remote: create entry (avoids prior findUnique query)
-      await prisma.remoteWorkEntry.create({
-        data: {
+        },
+        update: {}, // No-op if it already exists
+        create: {
           user_id: targetUserId,
           work_date: normalizedDate,
         }

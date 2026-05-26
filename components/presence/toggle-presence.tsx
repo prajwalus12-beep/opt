@@ -24,7 +24,13 @@ export function TogglePresence({ date, isRemote, userId }: TogglePresenceProps) 
     setOptimisticRemote(newState)
 
     startTransition(async () => {
-      const result = await toggleRemoteStatus(date, originalState, userId)
+      // Format date to local YYYY-MM-DD string to avoid timezone shifting during serialization
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const dateStr = `${y}-${m}-${d}`
+
+      const result = await toggleRemoteStatus(dateStr, originalState, userId)
       if (result.error) {
         // Revert on error
         setOptimisticRemote(originalState)
